@@ -62,14 +62,13 @@
   #attract.done{opacity:0;pointer-events:none}
   #attract-cv{display:block;width:100%;height:100%}
   .wrap{
-    position:relative;
     max-width:1180px;margin:0 auto;padding:22px 20px 60px;
     display:grid;grid-template-columns: minmax(0,1fr) 360px; gap:22px;
     align-items:start;
   }
   header.top{grid-column:1 / -1;display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--hair);padding-bottom:14px}
   .brand{display:flex;flex-direction:column;gap:4px}
-  .back-link{position:absolute;top:14px;left:14px;font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;letter-spacing:.08em;border:1px solid var(--hair);padding:4px 10px;border-radius:2px}
+  .back-link{grid-column:1 / -1;justify-self:start;font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;letter-spacing:.08em;border:1px solid var(--hair);padding:4px 10px;border-radius:2px}
   .back-link:hover{color:var(--copy);border-color:var(--copy)}
   .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--copy)}
   h1{font-family:var(--mono);font-weight:700;font-size:clamp(20px,3.4vw,30px);margin:0;letter-spacing:.02em;line-height:1.05}
@@ -278,8 +277,8 @@
 <body>
 <div id="attract"><canvas id="attract-cv"></canvas></div>
 <div class="wrap">
+  <a class="back-link" href="../../">&larr; Arcade</a>
   <header class="top">
-    <a class="back-link" href="../../">&larr; Arcade</a>
     <div class="brand">
       <div class="kicker">Cyber Resilience Arcade</div>
       <h1>SAFEGUARDED&nbsp;COPY <span class="dim">// snapshot &amp; recover</span></h1>

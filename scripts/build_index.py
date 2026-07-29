@@ -28,6 +28,7 @@ COVER_NAMES = ("cover.png", "cover.jpg", "cover.webp")
 
 TITLE_RE = re.compile(r"<title>([\s\S]*?)</title>", re.IGNORECASE)
 HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
 def meta_re(name: str) -> re.Pattern[str]:
@@ -94,6 +95,10 @@ def parse_game(path: Path) -> tuple[Game | None, list[str]]:
     text = path.read_text(encoding="utf-8")
     errors: list[str] = []
 
+    slug = path.parent.name
+    if not SLUG_RE.match(slug):
+        errors.append(f"{rel}: slug {slug!r} is not lowercase kebab-case")
+
     title = first_group(TITLE_RE, text)
     description = first_group(DESC_RE, text)
     added_raw = first_group(ADDED_RE, text)
@@ -127,7 +132,7 @@ def parse_game(path: Path) -> tuple[Game | None, list[str]]:
 
     return (
         Game(
-            slug=path.parent.name,
+            slug=slug,
             title=title,
             description=description,
             added=added,
@@ -158,7 +163,7 @@ def fallback_tile(game: Game) -> str:
     """Inline SVG card art for a game that has no cover image."""
     return (
         f'<svg class="tile" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" '
-        f'role="img" aria-label="{esc(game.title)} placeholder art">'
+        f'role="img" aria-hidden="true">'
         f'<rect width="320" height="180" fill="{game.accent}" fill-opacity="0.10"/>'
         f'<rect x="0.5" y="0.5" width="319" height="179" fill="none" '
         f'stroke="{game.accent}" stroke-opacity="0.40"/>'
@@ -179,10 +184,11 @@ def sort_games(games: list[Game]) -> list[Game]:
 
 
 def render_card(game: Game, today: date) -> str:
+    slug = esc(game.slug)
     if game.cover:
         art = (
-            f'<img class="tile" src="games/{game.slug}/{game.cover}" '
-            f'alt="{esc(game.title)} cover" loading="lazy">'
+            f'<img class="tile" src="games/{slug}/{game.cover}" '
+            f'alt="" loading="lazy">'
         )
     else:
         art = fallback_tile(game)
@@ -194,7 +200,7 @@ def render_card(game: Game, today: date) -> str:
     chips = ""
     if game.tags:
         items = "".join(f'<li class="chip">{esc(tag)}</li>' for tag in game.tags)
-        chips = f'\n  <ul class="chips">{items}</ul>'
+        chips = f'\n  <ul class="chips" role="list">{items}</ul>'
 
     controls = ""
     if game.controls:
@@ -204,10 +210,10 @@ def render_card(game: Game, today: date) -> str:
 
     return (
         f'<li class="card" style="--accent:{game.accent}">\n'
-        f'  <a class="card-link" href="games/{game.slug}/">\n'
+        f'  <a class="card-link" href="games/{slug}/">\n'
         f'    <span class="art">{art}</span>\n'
         f'    <span class="card-body">\n'
-        f'      <span class="card-title">{esc(game.title)}{badge}</span>\n'
+        f'      <h2 class="card-title">{esc(game.title)}{badge}</h2>\n'
         f'      <span class="blurb">{esc(game.description)}</span>\n'
         f"    </span>\n"
         f"  </a>{chips}{controls}\n"
@@ -219,7 +225,7 @@ def render_grid(games: list[Game], today: date) -> str:
     if not games:
         return '<p class="empty">No games yet.</p>'
     cards = "\n".join(render_card(game, today) for game in games)
-    return f'<ul class="grid">\n{cards}\n</ul>'
+    return f'<ul class="grid" role="list">\n{cards}\n</ul>'
 
 
 def splice(index_text: str, block: str) -> str:

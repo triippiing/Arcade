@@ -2,9 +2,10 @@
 
 Playable browser games, hosted on GitHub Pages: https://triippiing.github.io/Arcade/
 
-Everything runs client side. There is no server, no database, and no analytics.
-High scores are saved in each player's own browser via localStorage and are never
-uploaded, so scores are per person and per browser.
+Every game runs entirely in your browser. There is no server, no database, and
+no analytics. High scores are saved on your own device via localStorage and are
+never uploaded, so scores are per person and per browser. The only third party
+contact is Google Fonts, which sees each visitor's IP address and user agent.
 
 ## Adding a game
 
@@ -18,8 +19,10 @@ uploaded, so scores are per person and per browser.
    | `<meta name="description">` | yes | One line blurb |
    | `<meta name="added" content="YYYY-MM-DD">` | yes | Sort key, and a New badge for 30 days |
    | `<meta name="keywords">` | no | Comma separated, rendered as chips |
-   | `<meta name="game-accent" content="#36e0c8">` | no | Card accent colour |
+   | `<meta name="game-accent" content="#36e0c8">` | no | Card accent colour, defaults to the house cyan if omitted |
    | `<meta name="game-controls">` | no | For example `Arrows or WASD` |
+
+   The builder expects `name` before `content` on each meta tag, in that order.
 
 3. Optionally drop a `cover.png`, `cover.jpg`, or `cover.webp` in the same folder.
    Without one the index generates a monogram tile from the slug.
@@ -49,8 +52,11 @@ Fork or clone this repo into your own account, then enable Pages in Settings wit
 the source set to the `main` branch, root folder. Your copy will serve at
 `https://<your-user>.github.io/<your-repo-name>/`.
 
-Every path in this site is relative, so it works under any repo name, under a
-custom domain, and straight off the filesystem. Nothing is tied to this account.
+Every path in this site is relative, so it works under any repo name and under a
+custom domain. Nothing is tied to this account. Styling and assets do resolve
+straight off the filesystem, but the card links do not: no browser resolves a
+`file://` directory URL to its `index.html`, so use `serve.sh` for local preview
+instead.
 
 Two notes for a fork:
 

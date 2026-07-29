@@ -60,9 +60,20 @@ img,svg{max-width:100%}
 main,
 .site-foot{
   width:100%;
-  max-width:1160px;
   margin-inline:auto;
   padding-inline:clamp(18px,4vw,40px);
+}
+
+.site-head{
+  max-width:1160px;
+}
+
+/* 1180px, not 1160px: see the .grid comment below for why the three column
+   grid needs the headroom. 1180px also matches the game's own .wrap width,
+   so the two pages line up. */
+main,
+.site-foot{
+  max-width:1180px;
 }
 
 /* ---- marquee ------------------------------------------------------------ */
@@ -130,13 +141,14 @@ h1 .dim{
 /* ---- the rack ----------------------------------------------------------- */
 /* auto-fit rather than auto-fill: the repetition count is computed from the
    track's max sizing function, so a 340px max is what makes three columns
-   reachable inside 1080px of content (3*340 + 2*28 = 1076). auto-fit then
-   collapses the empty tracks, so one game does not sit stranded in the first
-   of three phantom columns, and centring keeps the leftover space symmetric
-   instead of pooling on one side. Card width is continuous as the viewport
-   narrows: it holds at 340px until the container is narrower than that, then
-   tracks the container, so there is no snap at any breakpoint. min() is what
-   stops the track outgrowing a narrow viewport. */
+   reachable inside 1100px of content (3*340 + 2*28 = 1076, 24px of headroom
+   rather than 4px, which is why main's max-width is 1180px and not 1160px).
+   auto-fit then collapses the empty tracks, so one game does not sit stranded
+   in the first of three phantom columns, and centring keeps the leftover
+   space symmetric instead of pooling on one side. Card width is continuous
+   as the viewport narrows: it holds at 340px until the container is
+   narrower than that, then tracks the container, so there is no snap at any
+   breakpoint. min() is what stops the track outgrowing a narrow viewport. */
 .grid{
   list-style:none;
   margin:0;
@@ -267,6 +279,7 @@ h1 .dim{
 
 .card-title{
   display:block;
+  margin:0;
   font-family:var(--mono);
   font-size:15px;
   font-weight:600;
@@ -275,8 +288,10 @@ h1 .dim{
   overflow-wrap:anywhere;
 }
 
-/* A marker, not a shout: hairline outline, small mono caps, held back with
-   opacity so it never competes with the title it sits beside. */
+/* A marker, not a shout: hairline outline and small mono caps. Pinned to
+   --muted-2 rather than --accent, the same fixed signal reasoning as --focus
+   and --live above: a game's accent can be dark or low contrast, and this
+   badge still has to read against the card. */
 .badge{
   display:inline-block;
   margin-left:.62em;
@@ -289,8 +304,7 @@ h1 .dim{
   font-weight:600;
   letter-spacing:.16em;
   text-transform:uppercase;
-  color:var(--accent);
-  opacity:.78;
+  color:var(--muted-2);
 }
 
 .blurb{

@@ -141,6 +141,36 @@ class TestParseGame(BuilderTestCase):
         self.assertIsNone(game)
         self.assertIn("hex colour", errors[0])
 
+    def test_valid_slug_passes(self):
+        path = write_game(self.root, "space-mines")
+        game, errors = build_index.parse_game(path)
+        self.assertEqual(errors, [])
+        self.assertEqual(game.slug, "space-mines")
+
+    def test_uppercase_slug_is_an_error(self):
+        path = write_game(self.root, "SpaceMines")
+        game, errors = build_index.parse_game(path)
+        self.assertIsNone(game)
+        self.assertIn("kebab-case", errors[0])
+
+    def test_slug_with_a_space_is_an_error(self):
+        path = write_game(self.root, "space mines")
+        game, errors = build_index.parse_game(path)
+        self.assertIsNone(game)
+        self.assertIn("kebab-case", errors[0])
+
+    def test_slug_with_a_quote_is_an_error(self):
+        path = write_game(self.root, 'space"mines')
+        game, errors = build_index.parse_game(path)
+        self.assertIsNone(game)
+        self.assertIn("kebab-case", errors[0])
+
+    def test_slug_with_a_leading_or_trailing_hyphen_is_an_error(self):
+        path = write_game(self.root, "-space-mines-")
+        game, errors = build_index.parse_game(path)
+        self.assertIsNone(game)
+        self.assertIn("kebab-case", errors[0])
+
     def test_entities_in_meta_are_decoded(self):
         path = write_game(
             self.root,
@@ -216,10 +246,13 @@ class TestFallbackTile(unittest.TestCase):
         self.assertIn("#36e0c8", svg)
         self.assertIn(">SC<", svg)
 
-    def test_tile_title_is_escaped(self):
+    def test_tile_is_decorative(self):
+        """The tile is inside the card link, which already names the game, so the
+        SVG itself must not be announced: aria-hidden, and no aria-label repeating
+        the title."""
         svg = build_index.fallback_tile(self.make_tile_game(title='Quote " & <tag>'))
-        self.assertNotIn("<tag>", svg)
-        self.assertIn("&amp;", svg)
+        self.assertIn('aria-hidden="true"', svg)
+        self.assertNotIn("aria-label", svg)
 
 
 def make_game(slug="alpha", title="Alpha", added=date(2026, 1, 15),
@@ -262,6 +295,32 @@ class TestRenderCard(unittest.TestCase):
         self.assertIn('src="games/arty/cover.png"', card)
         self.assertNotIn("<svg", card)
 
+    def test_cover_image_is_decorative(self):
+        """The card link already names the game via its title, so the cover art
+        must not repeat it: empty alt, not a copy of the title."""
+        card = build_index.render_card(
+            make_game(title="Arty", cover="cover.png"), self.TODAY
+        )
+        self.assertIn('alt=""', card)
+        self.assertNotIn("Arty cover", card)
+
+    def test_card_title_is_a_heading(self):
+        card = build_index.render_card(make_game(title="Alpha"), self.TODAY)
+        self.assertIn('<h2 class="card-title">', card)
+        self.assertIn("</h2>", card)
+
+    def test_grid_and_chips_expose_list_role(self):
+        card = build_index.render_card(make_game(tags=["arcade"]), self.TODAY)
+        self.assertIn('<ul class="chips" role="list">', card)
+
+    def test_slug_is_escaped_at_both_interpolation_sites(self):
+        """Defence in depth: parse_game rejects a slug like this before it ever
+        reaches render_card, but the escaping here must hold on its own too."""
+        game = make_game(slug='x" onmouseover="alert(1)', cover="cover.png")
+        card = build_index.render_card(game, self.TODAY)
+        self.assertNotIn('onmouseover="alert(1)"', card)
+        self.assertIn("&quot;", card)
+
     def test_uses_a_fallback_tile_when_no_cover(self):
         card = build_index.render_card(make_game(), self.TODAY)
         self.assertIn("<svg", card)
@@ -301,6 +360,7 @@ class TestRenderCard(unittest.TestCase):
         )
         self.assertIn("A &amp; B", card)
         self.assertNotIn("<now>", card)
+        self.assertIn("&quot;go&quot;", card)
 
 
 class TestRenderGridAndSplice(unittest.TestCase):
@@ -316,6 +376,10 @@ class TestRenderGridAndSplice(unittest.TestCase):
             [make_game(slug="a"), make_game(slug="b")], self.TODAY
         )
         self.assertEqual(grid.count('<li class="card"'), 2)
+
+    def test_grid_exposes_list_role(self):
+        grid = build_index.render_grid([make_game()], self.TODAY)
+        self.assertIn('<ul class="grid" role="list">', grid)
 
     def test_splice_replaces_only_between_the_markers(self):
         page = (

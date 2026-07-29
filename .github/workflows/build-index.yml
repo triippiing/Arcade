@@ -8,6 +8,8 @@ on:
       - 'scripts/build_index.py'
       - '.github/workflows/build-index.yml'
   workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
 
 permissions:
   contents: write

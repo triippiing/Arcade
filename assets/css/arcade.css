@@ -128,17 +128,22 @@ h1 .dim{
 @keyframes pulse{50%{opacity:.32}}
 
 /* ---- the rack ----------------------------------------------------------- */
-/* auto-fill keeps the track width identical whether there is one game or a
-   dozen, so a single cabinet sits at its natural size on the left edge rather
-   than stretching across the page. min() stops the track outgrowing a narrow
-   viewport. */
+/* auto-fit rather than auto-fill: the repetition count is computed from the
+   track's max sizing function, so a 340px max is what makes three columns
+   reachable inside 1080px of content (3*340 + 2*28 = 1076). auto-fit then
+   collapses the empty tracks, so one game does not sit stranded in the first
+   of three phantom columns, and centring keeps the leftover space symmetric
+   instead of pooling on one side. Card width is continuous as the viewport
+   narrows: it holds at 340px until the container is narrower than that, then
+   tracks the container, so there is no snap at any breakpoint. min() is what
+   stops the track outgrowing a narrow viewport. */
 .grid{
   list-style:none;
   margin:0;
   padding:0;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),380px));
-  justify-content:start;
+  grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),340px));
+  justify-content:center;
   gap:clamp(18px,2.4vw,28px);
 }
 
@@ -366,17 +371,7 @@ h1 .dim{
   font-size:13px;
   letter-spacing:.14em;
   text-transform:uppercase;
-  color:var(--muted-2);
-}
-
-.empty::after{
-  content:"Add a folder under games/ then run scripts/build_index.py";
-  display:block;
-  margin-top:12px;
-  font-size:11px;
-  letter-spacing:.03em;
-  text-transform:none;
-  color:var(--muted-2);
+  color:var(--muted);
 }
 
 /* ---- footer ------------------------------------------------------------- */
@@ -396,7 +391,6 @@ h1 .dim{
 
 /* ---- narrow ------------------------------------------------------------- */
 @media (max-width:600px){
-  .grid{grid-template-columns:1fr}
   h1{letter-spacing:.18em}
   .card-body{padding:16px 15px 14px}
   .chips,

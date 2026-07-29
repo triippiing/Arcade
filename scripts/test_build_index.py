@@ -222,5 +222,170 @@ class TestFallbackTile(unittest.TestCase):
         self.assertIn("&amp;", svg)
 
 
+def make_game(slug="alpha", title="Alpha", added=date(2026, 1, 15),
+              tags=None, accent="#36e0c8", controls="", cover=None,
+              description="A game."):
+    return build_index.Game(
+        slug=slug, title=title, description=description, added=added,
+        tags=tags or [], accent=accent, controls=controls, cover=cover,
+    )
+
+
+class TestSortGames(unittest.TestCase):
+    def test_newest_first(self):
+        old = make_game(slug="old", title="Old", added=date(2025, 1, 1))
+        new = make_game(slug="new", title="New", added=date(2026, 6, 1))
+        self.assertEqual(
+            [g.slug for g in build_index.sort_games([old, new])], ["new", "old"]
+        )
+
+    def test_same_date_falls_back_to_title(self):
+        b = make_game(slug="b", title="Banana", added=date(2026, 1, 1))
+        a = make_game(slug="a", title="apple", added=date(2026, 1, 1))
+        self.assertEqual(
+            [g.slug for g in build_index.sort_games([b, a])], ["a", "b"]
+        )
+
+
+class TestRenderCard(unittest.TestCase):
+    TODAY = date(2026, 7, 29)
+
+    def test_links_to_the_game_folder_with_a_relative_path(self):
+        card = build_index.render_card(make_game(slug="safeguarded-copy"), self.TODAY)
+        self.assertIn('href="games/safeguarded-copy/"', card)
+        self.assertNotIn('href="/', card)
+
+    def test_uses_the_cover_image_when_present(self):
+        card = build_index.render_card(
+            make_game(slug="arty", cover="cover.png"), self.TODAY
+        )
+        self.assertIn('src="games/arty/cover.png"', card)
+        self.assertNotIn("<svg", card)
+
+    def test_uses_a_fallback_tile_when_no_cover(self):
+        card = build_index.render_card(make_game(), self.TODAY)
+        self.assertIn("<svg", card)
+
+    def test_accent_is_exposed_as_a_css_variable(self):
+        card = build_index.render_card(make_game(accent="#ff0055"), self.TODAY)
+        self.assertIn("--accent:#ff0055", card)
+
+    def test_tags_become_chips(self):
+        card = build_index.render_card(make_game(tags=["arcade", "IBM"]), self.TODAY)
+        self.assertIn(">arcade<", card)
+        self.assertIn(">IBM<", card)
+
+    def test_no_chip_list_when_there_are_no_tags(self):
+        self.assertNotIn("chips", build_index.render_card(make_game(), self.TODAY))
+
+    def test_controls_line_only_appears_when_declared(self):
+        with_controls = build_index.render_card(
+            make_game(controls="Arrows or WASD"), self.TODAY
+        )
+        self.assertIn("Arrows or WASD", with_controls)
+        self.assertNotIn("controls", build_index.render_card(make_game(), self.TODAY))
+
+    def test_recent_games_get_a_new_badge(self):
+        fresh = build_index.render_card(
+            make_game(added=date(2026, 7, 20)), self.TODAY
+        )
+        stale = build_index.render_card(
+            make_game(added=date(2025, 1, 1)), self.TODAY
+        )
+        self.assertIn("badge", fresh)
+        self.assertNotIn("badge", stale)
+
+    def test_title_and_blurb_are_escaped(self):
+        card = build_index.render_card(
+            make_game(title="A & B", description='He said "go" <now>'), self.TODAY
+        )
+        self.assertIn("A &amp; B", card)
+        self.assertNotIn("<now>", card)
+
+
+class TestRenderGridAndSplice(unittest.TestCase):
+    TODAY = date(2026, 7, 29)
+
+    def test_empty_library_renders_an_empty_state(self):
+        grid = build_index.render_grid([], self.TODAY)
+        self.assertIn("empty", grid)
+        self.assertNotIn("<ul", grid)
+
+    def test_grid_wraps_every_card(self):
+        grid = build_index.render_grid(
+            [make_game(slug="a"), make_game(slug="b")], self.TODAY
+        )
+        self.assertEqual(grid.count('<li class="card"'), 2)
+
+    def test_splice_replaces_only_between_the_markers(self):
+        page = (
+            "<header>keep me</header>\n"
+            f"{build_index.BEGIN_MARKER}\n"
+            "<p>stale</p>\n"
+            f"{build_index.END_MARKER}\n"
+            "<footer>keep me too</footer>\n"
+        )
+        out = build_index.splice(page, "<p>fresh</p>")
+        self.assertIn("keep me", out)
+        self.assertIn("keep me too", out)
+        self.assertIn("<p>fresh</p>", out)
+        self.assertNotIn("stale", out)
+
+    def test_splice_is_idempotent(self):
+        page = f"a\n{build_index.BEGIN_MARKER}\nx\n{build_index.END_MARKER}\nb\n"
+        once = build_index.splice(page, "<p>fresh</p>")
+        twice = build_index.splice(once, "<p>fresh</p>")
+        self.assertEqual(once, twice)
+
+    def test_missing_markers_raise(self):
+        with self.assertRaises(ValueError):
+            build_index.splice("<html>no markers here</html>", "<p>x</p>")
+
+    def test_reversed_markers_raise(self):
+        page = f"{build_index.END_MARKER}\n{build_index.BEGIN_MARKER}"
+        with self.assertRaises(ValueError):
+            build_index.splice(page, "<p>x</p>")
+
+
+class TestMain(BuilderTestCase):
+    def setUp(self):
+        super().setUp()
+        self._real_index = build_index.INDEX
+        build_index.INDEX = self.root / "index.html"
+        build_index.INDEX.write_text(
+            f"<main>\n{build_index.BEGIN_MARKER}\n{build_index.END_MARKER}\n</main>\n",
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        build_index.INDEX = self._real_index
+        super().tearDown()
+
+    def test_writes_the_grid_and_returns_zero(self):
+        write_game(self.root, "alpha", title="Alpha")
+        self.assertEqual(build_index.main(), 0)
+        self.assertIn(
+            'href="games/alpha/"', build_index.INDEX.read_text(encoding="utf-8")
+        )
+
+    def test_running_twice_changes_nothing(self):
+        write_game(self.root, "alpha")
+        build_index.main()
+        first = build_index.INDEX.read_text(encoding="utf-8")
+        build_index.main()
+        self.assertEqual(build_index.INDEX.read_text(encoding="utf-8"), first)
+
+    def test_a_broken_game_fails_the_build_and_writes_nothing(self):
+        before = build_index.INDEX.read_text(encoding="utf-8")
+        write_game(self.root, "broken", meta="")
+        self.assertEqual(build_index.main(), 1)
+        self.assertEqual(build_index.INDEX.read_text(encoding="utf-8"), before)
+
+    def test_missing_markers_fail_the_build(self):
+        build_index.INDEX.write_text("<main></main>", encoding="utf-8")
+        write_game(self.root, "alpha")
+        self.assertEqual(build_index.main(), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

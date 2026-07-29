@@ -167,3 +167,108 @@ def fallback_tile(game: Game) -> str:
         f'fill="{game.accent}" fill-opacity="0.85">{esc(monogram(game.slug))}</text>'
         f"</svg>"
     )
+
+
+# A game added within this many days is badged as new on the index.
+NEW_DAYS = 30
+
+
+def sort_games(games: list[Game]) -> list[Game]:
+    """Newest first, then title, so the output is stable run to run."""
+    return sorted(games, key=lambda g: (-g.added.toordinal(), g.title.lower()))
+
+
+def render_card(game: Game, today: date) -> str:
+    if game.cover:
+        art = (
+            f'<img class="tile" src="games/{game.slug}/{game.cover}" '
+            f'alt="{esc(game.title)} cover" loading="lazy">'
+        )
+    else:
+        art = fallback_tile(game)
+
+    badge = ""
+    if (today - game.added).days <= NEW_DAYS:
+        badge = '<span class="badge">New</span>'
+
+    chips = ""
+    if game.tags:
+        items = "".join(f'<li class="chip">{esc(tag)}</li>' for tag in game.tags)
+        chips = f'\n  <ul class="chips">{items}</ul>'
+
+    controls = ""
+    if game.controls:
+        controls = (
+            f'\n  <p class="controls"><span>Controls</span> {esc(game.controls)}</p>'
+        )
+
+    return (
+        f'<li class="card" style="--accent:{game.accent}">\n'
+        f'  <a class="card-link" href="games/{game.slug}/">\n'
+        f'    <span class="art">{art}</span>\n'
+        f'    <span class="card-body">\n'
+        f'      <span class="card-title">{esc(game.title)}{badge}</span>\n'
+        f'      <span class="blurb">{esc(game.description)}</span>\n'
+        f"    </span>\n"
+        f"  </a>{chips}{controls}\n"
+        f"</li>"
+    )
+
+
+def render_grid(games: list[Game], today: date) -> str:
+    if not games:
+        return '<p class="empty">No games yet.</p>'
+    cards = "\n".join(render_card(game, today) for game in games)
+    return f'<ul class="grid">\n{cards}\n</ul>'
+
+
+def splice(index_text: str, block: str) -> str:
+    """Replace the region between the markers, leaving the rest untouched."""
+    start = index_text.find(BEGIN_MARKER)
+    end = index_text.find(END_MARKER)
+    if start == -1 or end == -1 or end < start:
+        raise ValueError(
+            f"index.html must contain {BEGIN_MARKER} then {END_MARKER}"
+        )
+    head = index_text[: start + len(BEGIN_MARKER)]
+    tail = index_text[end:]
+    return f"{head}\n{block}\n{tail}"
+
+
+def main() -> int:
+    games: list[Game] = []
+    errors: list[str] = []
+    for path in find_games(GAMES_DIR):
+        game, problems = parse_game(path)
+        if problems:
+            errors.extend(problems)
+        else:
+            games.append(game)
+
+    if errors:
+        for problem in errors:
+            print(f"error: {problem}", file=sys.stderr)
+        print(
+            f"{len(errors)} problem(s) found, index.html not written",
+            file=sys.stderr,
+        )
+        return 1
+
+    block = render_grid(sort_games(games), date.today())
+    text = INDEX.read_text(encoding="utf-8")
+    try:
+        updated = splice(text, block)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    if updated == text:
+        print(f"index.html already current, {len(games)} game(s)")
+    else:
+        INDEX.write_text(updated, encoding="utf-8")
+        print(f"index.html updated, {len(games)} game(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

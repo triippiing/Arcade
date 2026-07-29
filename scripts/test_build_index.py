@@ -157,5 +157,70 @@ class TestParseGame(BuilderTestCase):
         self.assertEqual(game.description, "Back & forth.")
 
 
+class TestFindCover(BuilderTestCase):
+    def test_returns_none_when_no_cover_present(self):
+        write_game(self.root, "bare")
+        self.assertIsNone(build_index.find_cover(self.root / "games" / "bare"))
+
+    def test_prefers_png_over_jpg_and_webp(self):
+        write_game(self.root, "arty")
+        game_dir = self.root / "games" / "arty"
+        for name in ("cover.webp", "cover.jpg", "cover.png"):
+            (game_dir / name).write_bytes(b"")
+        self.assertEqual(build_index.find_cover(game_dir), "cover.png")
+
+    def test_falls_through_to_webp(self):
+        write_game(self.root, "arty")
+        game_dir = self.root / "games" / "arty"
+        (game_dir / "cover.webp").write_bytes(b"")
+        self.assertEqual(build_index.find_cover(game_dir), "cover.webp")
+
+    def test_cover_is_picked_up_by_parse_game(self):
+        path = write_game(self.root, "arty")
+        (path.parent / "cover.png").write_bytes(b"")
+        game, errors = build_index.parse_game(path)
+        self.assertEqual(errors, [])
+        self.assertEqual(game.cover, "cover.png")
+
+
+class TestMonogram(unittest.TestCase):
+    def test_two_word_slug_uses_both_initials(self):
+        self.assertEqual(build_index.monogram("safeguarded-copy"), "SC")
+
+    def test_single_word_slug_uses_first_two_letters(self):
+        self.assertEqual(build_index.monogram("tetris"), "TE")
+
+    def test_extra_segments_are_ignored(self):
+        self.assertEqual(build_index.monogram("one-two-three"), "OT")
+
+    def test_degenerate_slug_does_not_crash(self):
+        self.assertEqual(build_index.monogram("---"), "??")
+
+
+class TestFallbackTile(unittest.TestCase):
+    def make_tile_game(self, slug="safeguarded-copy", accent="#36e0c8", title="SGC"):
+        return build_index.Game(
+            slug=slug,
+            title=title,
+            description="d",
+            added=date(2026, 1, 15),
+            tags=[],
+            accent=accent,
+            controls="",
+            cover=None,
+        )
+
+    def test_tile_carries_the_accent_and_monogram(self):
+        svg = build_index.fallback_tile(self.make_tile_game())
+        self.assertIn("<svg", svg)
+        self.assertIn("#36e0c8", svg)
+        self.assertIn(">SC<", svg)
+
+    def test_tile_title_is_escaped(self):
+        svg = build_index.fallback_tile(self.make_tile_game(title='Quote " & <tag>'))
+        self.assertNotIn("<tag>", svg)
+        self.assertIn("&amp;", svg)
+
+
 if __name__ == "__main__":
     unittest.main()

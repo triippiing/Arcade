@@ -138,3 +138,32 @@ def parse_game(path: Path) -> tuple[Game | None, list[str]]:
         ),
         [],
     )
+
+
+def monogram(slug: str) -> str:
+    """Two letters standing in for a game with no cover art.
+
+    Taken from the slug rather than the title, because slugs are short and
+    predictable: safeguarded-copy gives SC, tetris gives TE.
+    """
+    parts = [p for p in re.split(r"[^0-9A-Za-z]+", slug) if p]
+    if not parts:
+        return "??"
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[1][0]).upper()
+
+
+def fallback_tile(game: Game) -> str:
+    """Inline SVG card art for a game that has no cover image."""
+    return (
+        f'<svg class="tile" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" '
+        f'role="img" aria-label="{esc(game.title)} placeholder art">'
+        f'<rect width="320" height="180" fill="{game.accent}" fill-opacity="0.10"/>'
+        f'<rect x="0.5" y="0.5" width="319" height="179" fill="none" '
+        f'stroke="{game.accent}" stroke-opacity="0.40"/>'
+        f'<text x="160" y="112" text-anchor="middle" font-size="72" font-weight="700" '
+        f'font-family="IBM Plex Mono, ui-monospace, monospace" letter-spacing="6" '
+        f'fill="{game.accent}" fill-opacity="0.85">{esc(monogram(game.slug))}</text>'
+        f"</svg>"
+    )

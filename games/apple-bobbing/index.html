@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Apple Bobbing</title>
+    <meta name="description" content="Bob for apples in a witch's cauldron of real-time simulated water. Every apple you catch surfaces an IBM storage fact.">
+    <meta name="keywords" content="arcade, storage, IBM, halloween, educational, webgl">
+    <meta name="added" content="2026-09-03">
+    <meta name="game-accent" content="#ff8a2a">
+    <meta name="game-controls" content="Click or tap an apple to catch it, drag on the water to stir">
+    <script type="module" crossorigin src="./assets/index-CA9rvNcq.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D2AKnjVU.css">
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="hud">
+      <div id="counter">Apples caught: <span id="caught-count">0</span></div>
+      <div id="hint" class="hidden">Tap an apple</div>
+      <div id="fps" class="hidden"></div>
+    </div>
+    <div id="backdrop" class="hidden"></div>
+    <section id="fact-card" class="hidden" aria-live="polite">
+      <span id="fact-category"></span>
+      <h2 id="fact-title"></h2>
+      <p id="fact-body"></p>
+      <button id="fact-dismiss" type="button">Keep bobbing</button>
+    </section>
+    <div id="error" class="hidden"></div>
+  </body>
+</html>

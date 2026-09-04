@@ -8,20 +8,48 @@
     <meta name="keywords" content="arcade, storage, IBM, halloween, educational, webgl">
     <meta name="added" content="2026-09-03">
     <meta name="game-accent" content="#ff8a2a">
-    <meta name="game-controls" content="Click or tap an apple to catch it, drag on the water to stir">
-    <script type="module" crossorigin src="./assets/index-CA9rvNcq.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D2AKnjVU.css">
+    <meta name="game-controls" content="Tap an apple, then pick the right answer before the timer runs out. Drag on the water to stir">
+    <script type="module" crossorigin src="./assets/index-D3eAL7-c.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BIFKy3Fu.css">
   </head>
   <body>
     <div id="app"></div>
     <div id="hud">
-      <div id="counter">Apples caught: <span id="caught-count">0</span></div>
-      <div id="hint" class="hidden">Tap an apple</div>
+      <div id="counter">
+        <div id="pumpkin"><span id="caught-count">0</span></div>
+        <div>
+          <div id="counter-label">apples bobbed</div>
+          <div id="counter-sub"><span id="facts-left">12</span> facts still lurking</div>
+        </div>
+      </div>
+      <div id="attract" class="hidden">
+        <div id="attract-copy">
+          <div id="attract-kicker">The IBM Storage</div>
+          <h1 id="attract-title">Apple Bobbing</h1>
+          <p id="attract-blurb">Twelve apples, twelve facts about FlashSystem, Storage Scale, Defender, Ceph and tape. No wet hair required.</p>
+        </div>
+        <div id="attract-cta">Tap an apple to begin</div>
+      </div>
       <div id="fps" class="hidden"></div>
+      <a id="arcade-link" href="../../">&larr; Arcade</a>
     </div>
     <div id="backdrop" class="hidden"></div>
-    <section id="fact-card" class="hidden" aria-live="polite">
-      <span id="fact-category"></span>
+    <section id="quiz-card" class="sheet hidden" aria-live="polite">
+      <div id="quiz-timer"><div id="quiz-bar"></div><span id="quiz-seconds">12</span></div>
+      <div id="quiz-meta"><span id="quiz-category" class="pill"></span><span id="quiz-kicker">Answer right to bob the apple</span></div>
+      <h2 id="quiz-prompt"></h2>
+      <div id="quiz-answers">
+        <button class="answer" type="button" data-index="0"></button>
+        <button class="answer" type="button" data-index="1"></button>
+        <button class="answer" type="button" data-index="2"></button>
+        <button class="answer" type="button" data-index="3"></button>
+      </div>
+    </section>
+    <section id="fact-card" class="sheet hidden" aria-live="polite">
+      <div id="fact-meta">
+        <span id="fact-category" class="pill"></span>
+        <span id="fact-progress"></span>
+      </div>
       <h2 id="fact-title"></h2>
       <p id="fact-body"></p>
       <button id="fact-dismiss" type="button">Keep bobbing</button>

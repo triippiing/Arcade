@@ -325,8 +325,6 @@
           </div>
 
           <div class="btnrow"><button class="btn" id="btn-start">Raise the volume ▸</button><button class="btn ghost" id="btn-view-lb">🏆 Leaderboard</button></div>
-          <!-- DEV: level select for testing — remove this block (and its handler in the script) before pushing -->
-          <div class="btnrow" id="dev-levels" style="margin-top:8px"><span class="small" style="align-self:center;font-family:var(--mono);font-size:11px;color:var(--muted-2)">DEV start on</span><button class="btn ghost" data-level="1">Vol 1</button><button class="btn ghost" data-level="2">Vol 2</button><button class="btn ghost" data-level="3">Vol 3</button></div>
         </div>
       </div>
 
@@ -555,7 +553,7 @@
       pups:[ {r:3,c:9,type:'bee'}, {r:17,c:11,type:'bee'}, {r:7,c:3,type:'eye'}, {r:13,c:17,type:'eye'}, {r:13,c:3,type:'m'}, {r:7,c:17,type:'m'} ] }
   ];
   const Q=new URLSearchParams(location.search);
-  let startLevel=Math.min(LEVELS.length-1, Math.max(0, (parseInt(Q.get('level'))||1)-1));     // ?level=2 starts a run there
+  const startLevel=Math.min(LEVELS.length-1, Math.max(0, (parseInt(Q.get('level'))||1)-1));   // ?level=2 starts a run there
   const DEBUG_DOTS=parseInt(Q.get('dots'))||0;                                                 // ?dots=1 leaves one block (for testing)
   const DEBUG_GOD=Q.has('god');                                                                // ?god: threats cannot catch you (for testing)
   if(Q.has('debug')) window.__sgc={ get player(){ return player; }, get webs(){ return webList; }, get level(){ return level; }, get rules(){ return LV(); }, get dark(){ return dark; }, get clock(){ return clock; } };   // ?debug: read-only hook for tests
@@ -1672,8 +1670,6 @@
     ensureAudio(); hideAll(); newGame(); if(musicOn) startMusic();
   }
   $('btn-start').onclick=kickoff;
-  // DEV: level select — remove before pushing
-  document.querySelectorAll('#dev-levels button').forEach(b=>{ b.onclick=()=>{ startLevel=+b.dataset.level-1; kickoff(); }; });
 
   $('btn-restart').onclick=()=>{ setLED(false); kickoff(); };
   $('btn-again').onclick=kickoff;

@@ -1035,7 +1035,7 @@
     let dt=(now-last)/1000; last=now; if(dt>0.1)dt=0.1;
     if(state==='playing'&&!paused){
       acc+=dt;
-      while(acc>=STEP){ step(STEP); acc-=STEP; }
+      while(acc>=STEP && state==='playing' && !paused){ step(STEP); acc-=STEP; }   // stop once a step ends the volume
     } else { acc=0; }
     render();
     requestAnimationFrame(loop);
@@ -1312,6 +1312,7 @@
   }
 
   function volumeCleared(){
+    if(state!=='playing') return;                 // never twice for one clear
     state='cleared'; stopMusic(); sRec(); setLED(false);
     const done=LV(), next=LEVELS[level+1];
     const vs={ t:fmt(clock-volStart.t), taken:stats.taken-volStart.taken, rec:stats.rec-volStart.rec, lost:stats.lost-volStart.lost };
@@ -1325,6 +1326,7 @@
     });
   }
   function startVolume(n){
+    if(n>=LEVELS.length) return;
     loadLevel(n);
     applyVolume(freshVolume());
     repo=[]; lastCopyT=clock; blocksSinceCopy=0; fright=0; boost=0; eatChain=0;
@@ -1339,6 +1341,7 @@
   }
 
   function win(){
+    if(state!=='playing') return;
     state='win';
     document.getElementById('win-rec').textContent=stats.rec;
     document.getElementById('win-copies').textContent=stats.taken;
@@ -1987,6 +1990,7 @@
       cancelAnimationFrame(raf); host.classList.add('done');
       window.removeEventListener('resize',resize);
       window.removeEventListener('keydown',sk);
+      host.removeEventListener('click',end);
       if(cfg.button) cfg.button.hidden=true;
       if(cfg.onDone) cfg.onDone();
       setTimeout(()=>{ host.style.display='none'; }, 900);

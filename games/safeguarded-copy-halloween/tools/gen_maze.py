@@ -86,6 +86,10 @@ def verify(m):
     for (r, c) in cells:
         if (r, c) != nook and len(nbrs(r, c)) < 2: errs.append(f"dead end at ({r},{c})")
     if m[1][1] != 'o' or m[19][1] != 'o': errs.append("corner lanterns missing")
+    # the top and bottom halves must join in plenty of places, not just the tunnel row's far ends
+    up = sum(1 for c in range(C) if walkable(m, 8, c)); down = sum(1 for c in range(C) if walkable(m, 10, c))
+    if up < 5: errs.append(f"only {up} crossings on row 8 (need 5)")
+    if down < 5: errs.append(f"only {down} crossings on row 10 (need 5)")
     return errs
 
 def generate(seed):
@@ -173,6 +177,14 @@ if __name__ == '__main__':
         bad = ORIGINAL[:]; bad[3] = "X...X...X.X.X...X...X".replace("X...X", "X..XX", 1)
         print('broken copy rejected:', bool(verify(bad)))
         sys.exit(1 if errs else 0)
+    if cmd == 'verify-game':      # check the boards embedded in ../index.html
+        import re, os
+        src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'index.html')).read()
+        bad = 0
+        for name, body in re.findall(r"name:'([^']+)'[\s\S]*?map:\[([\s\S]*?)\]", src):
+            rows = re.findall(r'"([^"]+)"', body)
+            errs = verify(rows); print(name + ':', 'ok' if not errs else errs); bad += bool(errs)
+        sys.exit(1 if bad else 0)
     if cmd == 'gen':
         seed = int(sys.argv[2]); n = int(sys.argv[3]) if len(sys.argv) > 3 else 1
         out, s = [], seed

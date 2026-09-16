@@ -518,31 +518,32 @@
       "Xo........X........oX",
       "XXXXXXXXXXXXXXXXXXXXX"
     ] },
-    { name:'The Bell Tower', pace:0.92, release:[0,1.5,3,4.5], fright:5,
+    { name:'The Bell Tower', pace:0.89, release:[0,2,3.5,5], fright:5,
       warn:['faster still - no mercy','faster still, out almost at once','faster still, still random','faster still - quarantine only 5 s'],
       map:[
       "XXXXXXXXXXXXXXXXXXXXX",
       "Xo........X........oX",
-      "X.XXXXX.X.X.X.XXXXX.X",
-      "X.X.......X.......X.X",
-      "X.X.X.X.XXXXX.X.X.X.X",
-      "X...X.X...X...X.X...X",
-      "XXX.X.X.X.X.X.X.X.XXX",
-      "X...X...X...X...X...X",
-      "X.X.XXXXXX.XXXXXX.X.X",
-      " .......XX=XX....... ",
-      "XXXXXXX._____.XXXXXXX",
-      "X.......XXXXX.......X",
-      "X.X.XXX.XXXXX.XXX.X.X",
-      "X.X.......P.......X.X",
-      "X.XXX.XXX.X.XXX.XXX.X",
-      "X.X...............X.X",
-      "X.X.X.XXXXXXXXX.X.X.X",
-      "X.X.......X.......X.X",
       "X.X.X.X.X.X.X.X.X.X.X",
+      "X.......X.X.X.......X",
+      "X.XXX.X.X.X.X.X.XXX.X",
+      "X.........X.........X",
+      "X.X.X.XXXXXXXXX.X.X.X",
+      "X.X...............X.X",
+      "X.X.XXXXXX.XXXXXX.X.X",
+      " ...X...XX=XX...X... ",
+      "XXX.X.X._____.X.X.XXX",
+      "X.....X.XXXXX.X.....X",
+      "X.XXX.X.XXXXX.X.XXX.X",
+      "X.....X...P...X.....X",
+      "X.XXX.XXX.X.XXX.XXX.X",
+      "X...................X",
+      "X.X.X.XXXXXXXXX.X.X.X",
+      "X.....X...X...X.....X",
+      "X.X.XXX.X.X.X.XXX.X.X",
       "Xo........X........oX",
       "XXXXXXXXXXXXXXXXXXXXX"
-    ] }
+    ],
+      pups:[ {r:3,c:9,type:'bee'}, {r:17,c:11,type:'bee'}, {r:7,c:3,type:'eye'}, {r:13,c:17,type:'eye'}, {r:13,c:3,type:'m'}, {r:7,c:17,type:'m'} ] }
   ];
   const Q=new URLSearchParams(location.search);
   const startLevel=Math.min(LEVELS.length-1, Math.max(0, (parseInt(Q.get('level'))||1)-1));   // ?level=2 starts a run there
@@ -667,7 +668,7 @@
   function freshVolume(){
     // protected-volume state derived from MAP each (re)build
     const d=[], s=[], pu=[];
-    const puMap={}; POWERUPS.forEach(p=>{ puMap[p.r+'_'+p.c]=p.type; });
+    const puMap={}; (LV().pups||POWERUPS).forEach(p=>{ puMap[p.r+'_'+p.c]=p.type; });   // a volume may spread its own power-ups
     dotsTotal=0;
     for(let r=0;r<ROWS;r++){ d[r]=[]; s[r]=[]; pu[r]=[];
       for(let c=0;c<COLS;c++){

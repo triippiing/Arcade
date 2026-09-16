@@ -1138,15 +1138,15 @@
     }
   }
 
-  function takeCopy(){
-    copySeq++; stats.taken++;
+  function takeCopy(auto){                         // auto: taken by the system when a volume comes online
+    copySeq++; if(!auto) stats.taken++;
     const snapState = captureVolume();             // immutable point-in-time copy
-    const rp = {seq:copySeq, t:clock, score, dotsLeft, blocks:dotsTotal-dotsLeft, state:snapState};
+    const rp = {seq:copySeq, t:clock, score, dotsLeft, blocks:dotsTotal-dotsLeft, state:snapState, auto:!!auto};
     repo.push(rp);
     const expired=[];
     while(repo.length>RETENTION){ expired.push(repo.shift().seq); }   // retention / FIFO rotation
     lastCopyT=clock; blocksSinceCopy=0;
-    sCopy();
+    if(!auto) sCopy();
     syncRepo();
     if(expired.length) flashExpiry(expired);
   }
@@ -1267,7 +1267,7 @@
       const el=document.createElement('div'); el.className='rp';
       el.innerHTML=`<div class="lock">🔒</div>
         <div class="meta">
-          <div class="seq">Safeguarded Copy #${rp.seq}</div>
+          <div class="seq">Safeguarded Copy #${rp.seq}${rp.auto?' \u00b7 volume online':''}</div>
           <div class="sub">${fmt(rp.t)} · ${rp.blocks} blocks · score ${rp.score}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
@@ -1332,7 +1332,8 @@
     resetDark();
     ghosts.forEach(g=>{ g.pace=LV().pace; });
     resetActors(true);
-    const rn=$('repo-note'); if(rn){ rn.textContent=LV().name+' brought online \u2014 copies of the previous volume cannot restore this one, so the crypt starts empty.'; rn.hidden=false; rn.style.opacity=1; }
+    takeCopy(true);                                // an initial copy of the fresh volume, as you would when bringing one into production
+    const rn=$('repo-note'); if(rn){ rn.textContent=LV().name+' brought online with an initial copy \u2014 copies of the previous volume cannot restore this one.'; rn.hidden=false; rn.style.opacity=1; }
     state='playing'; syncUI(); syncRepo();
     if(musicOn) startMusic();
   }
@@ -1644,7 +1645,7 @@
     [...repo].reverse().forEach(rp=>{
       const el=document.createElement('div'); el.className='copy-chip';
       el.innerHTML=`<span class="lk">🔒</span>
-        <div class="info"><div class="t">Copy #${rp.seq}</div>
+        <div class="info"><div class="t">Copy #${rp.seq}${rp.auto?' \u00b7 volume online':''}</div>
         <div class="s">${fmt(rp.t)} · ${rp.blocks} blocks</div></div>
         <span class="imm">Immutable</span>`;
       host.appendChild(el);

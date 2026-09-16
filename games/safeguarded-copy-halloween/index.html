@@ -524,8 +524,10 @@
       "Xo........X........oX",
       "XXXXXXXXXXXXXXXXXXXXX"
     ] },
-    { name:'The Bell Tower', pace:0.89, release:[0,2,3.5,5], fright:5,
-      warn:['faster still - no mercy','faster still, out almost at once','faster still, still random','faster still - quarantine only 5 s'],
+    { name:'The Bell Tower', pace:0.76, release:[0,2,3.5,5], fright:5,
+      blackout:{first:6, every:14, warn:0.8, dark:3.2},   // seconds: first failure, then cadence; flicker warning; time in the dark
+      note:'The lanterns fail every so often. In the dark only the threats glow, and a small light follows the I/O head. Threats move slower here.',
+      warn:['slower, but you will not see it coming','slower, out of the pen at once','slower, still unpredictable','slower - quarantine only 5 s'],
       map:[
       "XXXXXXXXXXXXXXXXXXXXX",
       "Xo........X........oX",
@@ -554,7 +556,7 @@
   const Q=new URLSearchParams(location.search);
   let startLevel=Math.min(LEVELS.length-1, Math.max(0, (parseInt(Q.get('level'))||1)-1));     // ?level=2 starts a run there
   const DEBUG_DOTS=parseInt(Q.get('dots'))||0;                                                 // ?dots=1 leaves one block (for testing)
-  if(Q.has('debug')) window.__sgc={ get player(){ return player; }, get webs(){ return webList; }, get level(){ return level; } };   // ?debug: read-only hook for tests
+  if(Q.has('debug')) window.__sgc={ get player(){ return player; }, get webs(){ return webList; }, get level(){ return level; }, get rules(){ return LV(); }, get dark(){ return dark; } };   // ?debug: read-only hook for tests
   let level=0; const LV=()=>LEVELS[level];
   const ROWS = LEVELS[0].map.length;
   const COLS = LEVELS[0].map[0].length;
@@ -673,7 +675,7 @@
   const PU_GLOW={ bee:'#f0c45a', eye:'#e8e8e8', m:'#6377d8' };
   let player, ghosts, score, dotsLeft, dotsTotal, clock, grace,
       phaseTimer, phase, mouth, state, repo, stats, lastCopyT, blocksSinceCopy, copySeq,
-      fright, eatChain, boost, volStart;
+      fright, eatChain, boost, volStart, dark;
   let muted=false, paused=false;
 
   function freshVolume(){
@@ -725,6 +727,7 @@
       eaten:false, penned:true, released:false, relTimer:LV().release[i], target:{c:0,r:0}, idx:i}));
     repo=[]; stats={taken:0, rec:0, lost:0, purged:0}; copySeq=0;
     clock=0; grace=0; phaseTimer=0; phase='scatter'; mouth=0; volStart={t:0,taken:0,rec:0,lost:0};
+    resetDark();
     lastCopyT=0; blocksSinceCopy=0; fright=0; eatChain=0; boost=0;
     applyVolume(freshVolume());
     resetActors(true);
@@ -809,7 +812,9 @@
     if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to,t+dur);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+(o.attack||0.008));
     g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    osc.connect(g); g.connect(o.dest||sfxGain); osc.start(t); osc.stop(t+dur+0.03);
+    let out=osc;
+    if(o.lp){ const f=ax.createBiquadFilter(); f.type='lowpass'; f.frequency.value=o.lp; osc.connect(f); out=f; }
+    out.connect(g); g.connect(o.dest||sfxGain); osc.start(t); osc.stop(t+dur+0.03);
   }
   function puff(ax,t,dur,vol,type,freq,o){
     o=o||{};
@@ -840,6 +845,12 @@
   const sBoost=t0=>sfx(t0,(ax,t)=>{ puff(ax,t,0.45,0.14,'bandpass',600,{to:3200,q:1.2}); tone(ax,t+0.05,220,0.35,'triangle',0.04,{to:880}); });
   // walked into a cobweb: a soft sticky crackle with a sagging tone
   const sWeb=t0=>sfx(t0,(ax,t)=>{ puff(ax,t,0.22,0.09,'bandpass',3200,{q:2.5,to:900}); tone(ax,t,260,0.28,'triangle',0.035,{to:120}); });
+  // lanterns flicker: a crackly buzz
+  const sFlicker=t0=>sfx(t0,(ax,t)=>{ [0,0.09,0.16,0.3,0.36].forEach(d=>puff(ax,t+d,0.05,0.09,'bandpass',2400,{q:4})); tone(ax,t,110,0.5,'sawtooth',0.02,{lp:900}); });
+  // lanterns out: a low whoomp
+  const sDark=t0=>sfx(t0,(ax,t)=>{ tone(ax,t,140,0.6,'sine',0.11,{to:36}); puff(ax,t,0.5,0.1,'lowpass',420,{to:120}); });
+  // lanterns relight: a soft warm ding
+  const sRelight=t0=>sfx(t0,(ax,t)=>{ tone(ax,t,1318.5,0.5,'sine',0.045); tone(ax,t+0.04,1760,0.35,'sine',0.02); puff(ax,t,0.06,0.05,'bandpass',3000,{q:3}); });
   // quarantine opens: an eerie minor-second wobble
   const sPurge=t0=>sfx(t0,(ax,t)=>{ [[0,740,0.14],[0.14,698.5,0.14],[0.28,740,0.14],[0.42,698.5,0.3]].forEach(([d,f,l])=>tone(ax,t+d,f,l,'sine',0.06)); });
 
@@ -1034,6 +1045,7 @@
     clock+=dt; if(grace>0)grace-=dt;
     if(fright>0){ fright-=dt; if(fright<=0) fright=0; }
     if(boost>0){ boost-=dt; if(boost<=0) boost=0; }
+    stepDark(dt);
     mouth=(mouth+dt*(player.inWeb&&boost<=0?5:9))%(Math.PI*2);
     // phase scatter/chase cadence
     phaseTimer+=dt;
@@ -1047,6 +1059,24 @@
     if(dotsLeft<=0){ if(level<LEVELS.length-1) volumeCleared(); else win(); }
     syncUI();
   }
+
+  // Blackouts (The Bell Tower): lit -> warn (lanterns flicker) -> dark (only threats glow) -> lit
+  function resetDark(){ const b=LV().blackout; dark={phase:'lit', t:b?b.first:Infinity, alpha:0}; }
+  function stepDark(dt){
+    const b=LV().blackout; if(!b) return;
+    dark.t-=dt;
+    if(dark.phase==='lit'){
+      dark.alpha=Math.max(0, dark.alpha-dt*3);                       // relight fades in
+      if(dark.t<=0){ dark.phase='warn'; dark.t=b.warn; sFlicker(); }
+    } else if(dark.phase==='warn'){
+      dark.alpha = (Math.floor(clock*16)%3===0) ? 0.9 : 0.12;         // stutter
+      if(dark.t<=0){ dark.phase='dark'; dark.t=b.dark; dark.alpha=0.97; sDark(); duckMusic(true); }
+    } else if(dark.phase==='dark'){
+      dark.alpha=0.97;
+      if(dark.t<=0){ dark.phase='lit'; dark.t=b.every; sRelight(); duckMusic(false); }
+    }
+  }
+  function duckMusic(on){ try{ if(musicGain){ const t=actx.currentTime; musicGain.gain.cancelScheduledValues(t); musicGain.gain.setValueAtTime(musicGain.gain.value,t); musicGain.gain.linearRampToValueAtTime(on?0.07:0.16,t+0.4); } }catch(_){} }
 
   function movePlayer(){
     const e=player;
@@ -1299,6 +1329,7 @@
     applyVolume(freshVolume());
     repo=[]; lastCopyT=clock; blocksSinceCopy=0; fright=0; boost=0; eatChain=0;
     volStart={t:clock, taken:stats.taken, rec:stats.rec, lost:stats.lost};
+    resetDark();
     ghosts.forEach(g=>{ g.pace=LV().pace; });
     resetActors(true);
     const rn=$('repo-note'); if(rn){ rn.textContent=LV().name+' brought online \u2014 copies of the previous volume cannot restore this one, so the crypt starts empty.'; rn.hidden=false; rn.style.opacity=1; }
@@ -1391,6 +1422,17 @@
     }
 
     if(state==='intro') return;
+    if(dark && dark.alpha>0.01){
+      // darkness everywhere except a soft pool of light around the I/O head
+      const px=player.x, py=player.y;
+      const d=ctx.createRadialGradient(px,py,22,px,py,82);
+      d.addColorStop(0,'rgba(6,3,10,0)'); d.addColorStop(0.55,'rgba(6,3,10,'+(dark.alpha*0.75).toFixed(3)+')'); d.addColorStop(1,'rgba(6,3,10,'+dark.alpha.toFixed(3)+')');
+      ctx.fillStyle=d; ctx.fillRect(0,0,cv.width,cv.height);
+      if(player.x<100) { ctx.fillStyle=d; ctx.save(); ctx.translate(COLS*TILE,0); ctx.fillRect(-COLS*TILE,0,cv.width,cv.height); ctx.restore(); }
+      const warm=ctx.createRadialGradient(px,py,4,px,py,60);
+      warm.addColorStop(0,'rgba(255,170,80,'+(dark.alpha*0.16).toFixed(3)+')'); warm.addColorStop(1,'rgba(255,170,80,0)');
+      ctx.fillStyle=warm; ctx.beginPath(); ctx.arc(px,py,60,0,7); ctx.fill();
+    }
     drawPlayer();
     ghosts.forEach(drawGhost);
   }
@@ -1575,7 +1617,11 @@
     // stage header: quarantine > speed boost > normal online state
     if(state==='playing'){
       const led=$('led'); led.classList.remove('bad');
-      if(fright>0){ led.style.background='var(--copy)'; led.style.boxShadow='0 0 10px var(--copy)';
+      if(dark && dark.phase==='dark'){ led.style.background='#ffb347'; led.style.boxShadow='0 0 10px #ffb347';
+        $('vol-state').textContent=`LANTERNS OUT — ${Math.ceil(dark.t)}s`; }
+      else if(dark && dark.phase==='warn'){ led.style.background='#ffb347'; led.style.boxShadow='0 0 10px #ffb347';
+        $('vol-state').textContent='LANTERNS FLICKERING'; }
+      else if(fright>0){ led.style.background='var(--copy)'; led.style.boxShadow='0 0 10px var(--copy)';
         $('vol-state').textContent=`THREAT QUARANTINE ACTIVE — ${Math.ceil(fright)}s`; }
       else if(boost>0){ led.style.background='#cdf85a'; led.style.boxShadow='0 0 10px #cdf85a';
         $('vol-state').textContent=`THROUGHPUT BOOST — ${Math.ceil(boost)}s`; }

@@ -765,34 +765,36 @@
   const NOTE={C:-9,'C#':-8,D:-7,'D#':-6,E:-5,F:-4,'F#':-3,G:-2,'G#':-1,A:0,'A#':1,B:2};
   function hz(n){ const m=/^([A-G]#?)(\d)$/.exec(n); return 440*Math.pow(2,(NOTE[m[1]]+(+m[2]-4)*12)/12); }
 
-  // SECTION A — creeping organ vamp: a pedal bass that slips to its chromatic neighbours,
-  // a slow theremin lead (with a tritone), held minor chords, a heartbeat underneath
+  // SECTION A — a creepy-cute swing: walking bass with chromatic approach notes, a plucky
+  // staccato tune with chromatic neighbours, off-beat comping stabs, brushed snare
   const A_BASS=[
-    'A2',null,null,null, null,null,null,null, 'G#2',null,null,null, 'A2',null,null,null,
-    'A2',null,null,null, null,null,null,null, 'A#2',null,null,null, 'A2',null,null,null];
+    'A2',null,null,null, 'C3',null,null,null, 'E3',null,null,null, 'D#3',null,null,null,
+    'D3',null,null,null, 'F3',null,null,null, 'E3',null,null,null, 'G#2',null,null,null];
   const A_LEAD=[
-    'A4',null,null,null, 'C5',null,null,null, 'B4',null,null,null, 'G#4',null,null,null,
-    'A4',null,null,null, 'D#5',null,null,null, 'E5',null,null,null, null,null,null,null];
-  const A_STAB={ 0:['A3','C4','E4'], 8:['A3','C4','E4'], 16:['F3','A3','C4'], 24:['E3','G#3','B3'] };
-  const A_KICK =new Set([0,3,16,19]);           // lub-dub each bar
-  const A_SNARE=new Set([8,24]);                // bone rattle
-  const A_HAT  =new Set([4,12,20,28]);          // sparse shaker
+    'E5',null,'E5',null, 'D#5','E5',null,'C5', null,'A4',null,null, 'B4',null,'C5',null,
+    'D5',null,null,'C5', 'B4',null,'A4',null, 'G#4',null,null,null, 'B4',null,'E5',null];
+  const A_STAB={ 2:['A3','C4','E4'], 6:['A3','C4','E4'], 10:['A3','C4','E4'], 14:['A3','C4','D#4'],
+                 18:['D3','F3','A3'], 22:['D3','F3','A3'], 26:['E3','G#3','B3'], 30:['E3','G#3','D4'] };
+  const A_KICK =new Set([0,8,16,24]);
+  const A_SNARE=new Set([4,12,20,28]);          // brushed
+  const A_HAT  =new Set([0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30]);
 
-  // SECTION B — a bell tolling over a drone: Dm -> E7, the dominant dragging us back to A minor
+  // SECTION B — the UFO theremin wails a slow counter-line over the same walk (Dm -> E7 -> back)
   const B_BASS=[
-    'D2',null,null,null, null,null,null,null, 'D2',null,null,null, null,null,null,null,
-    'E2',null,null,null, null,null,null,null, 'E2',null,null,null, null,null,null,null];
+    'D3',null,null,null, 'F3',null,null,null, 'A3',null,null,null, 'G#3',null,null,null,
+    'E3',null,null,null, 'D3',null,null,null, 'C3',null,null,null, 'G#2',null,null,null];
   const B_LEAD=[
-    'A3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-    'E3',null,null,null, null,null,null,null, 'G#3',null,null,null, null,null,null,null];
-  const B_STAB={ 0:['D3','F3','A3'], 16:['E3','G#3','B3','D4'] };
-  const B_KICK =new Set([0,3,16,19]);
-  const B_SNARE=new Set([]);
-  const B_HAT  =new Set([8,24]);
+    'A4',null,null,null, null,null,null,null, 'C5',null,null,null, 'B4',null,null,null,
+    'G#4',null,null,null, null,null,null,null, 'D#5',null,null,null, 'E5',null,null,null];
+  const B_STAB={ 2:['D3','F3','A3'], 6:['D3','F3','A3'], 10:['D3','F3','A3'], 14:['D3','F3','G#3'],
+                 18:['E3','G#3','B3'], 22:['E3','G#3','B3'], 26:['E3','G#3','D4'], 30:['E3','G#3','D4'] };
+  const B_KICK =new Set([0,8,16,24]);
+  const B_SNARE=new Set([4,12,20,28]);
+  const B_HAT  =new Set([0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30]);
 
   const SECTIONS=[
-    {bass:A_BASS,lead:A_LEAD,stab:A_STAB,kick:A_KICK,snare:A_SNARE,hat:A_HAT,leadType:'theremin',leadVol:0.075},
-    {bass:B_BASS,lead:B_LEAD,stab:B_STAB,kick:B_KICK,snare:B_SNARE,hat:B_HAT,leadType:'bell',    leadVol:0.16}
+    {bass:A_BASS,lead:A_LEAD,stab:A_STAB,kick:A_KICK,snare:A_SNARE,hat:A_HAT,leadType:'pluck',   leadVol:0.2},
+    {bass:B_BASS,lead:B_LEAD,stab:B_STAB,kick:B_KICK,snare:B_SNARE,hat:B_HAT,leadType:'theremin',leadVol:0.075}
   ];
   const SECTION_REPEATS=4;   // 2-bar loops before switching section (4 = 8 bars each)
 
@@ -803,7 +805,7 @@
   const POWER_SNARE=new Set([4,12]);
   const POWER_HAT  =new Set([0,2,4,6,8,10,12,14]);
   const POWER_LEN=16;
-  const BASE_BPM=96, POWER_BPM=152;
+  const BASE_BPM=112, POWER_BPM=152;
 
   // BOOST cue — broomstick flight: a fast minor arpeggio over bouncing octaves, with a whoosh every half bar
   const BOOST_LEAD=['A4','C5','E5','A5', 'G#5','E5','C5','A4', 'F4','A4','C5','F5', 'E5','C5','A4','E4'];
@@ -827,10 +829,6 @@
     if(o.lp){ const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=o.lp; f.Q.value=1.2; osc.connect(f); out=f; }
     out.connect(g); g.connect(musicGain); osc.start(t); osc.stop(t+dur+0.03);
   }
-  // tubular bell: a few inharmonic partials with long, uneven decays
-  function bell(t,freq,vol){
-    [[1,1.6,1],[2.0,1.2,0.5],[2.76,0.9,0.35],[5.4,0.5,0.15]].forEach(([r,dur,v])=>mtone(freq*r,t,dur,'sine',vol*v,{attack:0.005}));
-  }
   function mkick(t){ const o=actx.createOscillator(),g=actx.createGain(); o.type='sine';   // heartbeat thump
     o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(38,t+0.14);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.7,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
@@ -840,9 +838,10 @@
     if(to) f.frequency.exponentialRampToValueAtTime(to,t+dur);
     const g=actx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     n.connect(f); f.connect(g); g.connect(musicGain); n.start(t); n.stop(t+dur+0.02); }
-  function rattle(t){                                       // dry bone rattle: two quick bandpassed clicks
+  function rattle(t){                                       // dry bone rattle: three quick bandpassed clicks
     [0,0.045,0.08].forEach((d,i)=>puff(actx,t+d,0.07,0.28-i*0.07,'bandpass',2600,{q:3,dest:musicGain}));
   }
+  function brush(t){ puff(actx,t,0.16,0.22,'bandpass',1800,{q:0.7,dest:musicGain}); }   // brushed snare
   // wind bed: looped noise through a lowpass whose cutoff drifts on two slow LFOs
   let wind=null;
   function startWind(){
@@ -867,17 +866,24 @@
 
   const music={on:false, step:0, sec:0, loops:0, pstep:0, mode:'normal', nextTime:0, bpm:BASE_BPM, timer:null, lastLead:null};
   function stepDur(){ return 60/music.bpm/4; }            // one 16th note
-  function playStep(i,t){                                  // straight time — it creeps, it doesn't groove
+  function playStep(i,t){
     const S=SECTIONS[music.sec], sd=stepDur();
-    if(S.bass[i]) mtone(hz(S.bass[i]), t, sd*3.8, 'triangle', 0.5, {attack:0.02});
+    const sw = (i%2===1) ? sd*0.2 : 0;                     // swung off-16ths
+    const st=t+sw;
+    if(S.bass[i]) mtone(hz(S.bass[i]), st, sd*3.2, 'triangle', 0.5, {attack:0.01});          // walking bass
     if(S.lead[i]){
-      if(S.leadType==='bell') bell(t, hz(S.lead[i]), S.leadVol);
-      else { const f=hz(S.lead[i]); mtone(f, t, sd*3.6, 'sawtooth', S.leadVol, {attack:0.12, vib:9, vibRate:4.8, lp:1600, from:music.lastLead||f*0.94}); music.lastLead=f; }
+      const f=hz(S.lead[i]);
+      if(S.leadType==='pluck'){                             // staccato pizzicato-ish pluck
+        mtone(f, st, sd*0.55, 'triangle', S.leadVol, {attack:0.004});
+        mtone(f, st, sd*0.35, 'square', S.leadVol*0.22, {attack:0.004, lp:2400});
+      } else {                                              // UFO theremin: filtered saw, wide slow vibrato, glide
+        mtone(f, st, sd*3.6, 'sawtooth', S.leadVol, {attack:0.12, vib:9, vibRate:4.8, lp:1600, from:music.lastLead||f*0.94}); music.lastLead=f;
+      }
     }
-    if(S.stab[i]) S.stab[i].forEach(n=>mtone(hz(n), t, sd*7.5, 'triangle', 0.09, {attack:0.05}));   // held organ chord
+    if(S.stab[i]) S.stab[i].forEach(n=>mtone(hz(n), st, sd*0.5, 'square', 0.045, {attack:0.004, lp:3000}));   // off-beat comp
     if(S.kick.has(i)) mkick(t);
-    if(S.snare.has(i)) rattle(t);
-    if(S.hat.has(i)) mnoise(t,0.05,0.035,5000);
+    if(S.snare.has(i)) brush(t);
+    if(S.hat.has(i)) mnoise(t+sw,0.03,(i%2?0.035:0.06),7000);
   }
   function playPower(i,t){                                 // tight, no swing — frantic
     if(POWER_LEAD[i]) mtone(hz(POWER_LEAD[i]), t, stepDur()*0.95, 'square', 0.16);

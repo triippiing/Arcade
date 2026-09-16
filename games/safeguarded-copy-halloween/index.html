@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>IBM ServiceExpress SGC Game: Halloween Edition</title>
-<meta name="description" content="Halloween edition. Steer a jack-o'-lantern I/O head through a haunted volume while four threat actors give chase. Bank immutable Safeguarded Copies and roll back when you get hit.">
+<meta name="description" content="Halloween edition, three haunted volumes. Steer a jack-o'-lantern I/O head through the mazes while four threat actors give chase. Bank immutable Safeguarded Copies and roll back when you get hit.">
 <meta name="keywords" content="halloween, arcade, storage, ransomware, IBM, educational, cyber resilience">
 <meta name="added" content="2026-09-16">
 <meta name="game-accent" content="#ff8a2a">
@@ -57,12 +57,14 @@
     background:repeating-linear-gradient(0deg, #ffffff05 0 1px, transparent 1px 3px);
     mix-blend-mode:overlay;opacity:.5;
   }
-  #attract{position:fixed;inset:0;z-index:200;
+  .splash{position:fixed;inset:0;z-index:200;
     background:radial-gradient(1200px 700px at 80% -10%, #2a1a4a 0%, transparent 60%),
       radial-gradient(900px 600px at -10% 110%, #2a1608 0%, transparent 55%), var(--bg);
     opacity:1;transition:opacity .85s ease}
-  #attract.done{opacity:0;pointer-events:none}
-  #attract-cv{display:block;width:100%;height:100%}
+  .splash.done{opacity:0;pointer-events:none}
+  .splash[hidden]{display:none}
+  .splash .btn{position:absolute;left:50%;bottom:16%;transform:translateX(-50%)}
+  .splash canvas{display:block;width:100%;height:100%}
   .wrap{
     max-width:1180px;margin:0 auto;padding:22px 20px 60px;
     display:grid;grid-template-columns: minmax(0,1fr) 360px; gap:22px;
@@ -277,7 +279,8 @@
 </style>
 </head>
 <body>
-<div id="attract"><canvas id="attract-cv"></canvas></div>
+<div id="attract" class="splash"><canvas id="attract-cv"></canvas></div>
+<div id="transition" class="splash done" hidden><canvas id="transition-cv"></canvas><button class="btn" id="btn-descend">Descend ▸</button></div>
 <div class="wrap">
   <a class="back-link" href="../../">&larr; Arcade</a>
   <header class="top">
@@ -293,7 +296,7 @@
     <div class="stage-head">
       <div class="vol"><span class="led" id="led"></span><span id="vol-state">PRODUCTION VOLUME — ONLINE</span></div>
       <div class="hud">
-        <span>SCORE&nbsp;<b id="h-score">0</b></span>
+        <span id="h-level">VOL 1/3</span><span>SCORE&nbsp;<b id="h-score">0</b></span>
         <span>BLOCKS&nbsp;<b id="h-dots">0</b></span>
       </div>
     </div>
@@ -305,7 +308,7 @@
         <div class="card">
           <div class="kicker" style="margin-bottom:6px">Cyber Resilience Arcade &middot; Halloween</div>
           <h2>Something wicked this way writes.</h2>
-          <p style="margin:6px 0 4px"><b>Arrow keys / WASD</b> or swipe to steer. Eat every candy block. Grab the <b style="color:var(--copy)">green lanterns</b> to capture immutable Safeguarded Copies — when a threat catches you, roll back to a clean copy instead of losing everything.</p>
+          <p style="margin:6px 0 4px"><b>Arrow keys / WASD</b> or swipe to steer. Three haunted volumes stand between you and a clean restore — eat every candy block in each. Grab the <b style="color:var(--copy)">green lanterns</b> to capture immutable Safeguarded Copies — when a threat catches you, roll back to a clean copy instead of losing everything.</p>
           <div class="legend-mini" style="margin:10px 0 0">
             <span><i style="background:var(--player)"></i>I/O head (you)</span>
             <span><i style="background:var(--copy)"></i>Safeguarded Copy</span>
@@ -361,7 +364,7 @@
         <div class="card">
           <div class="kicker" style="margin-bottom:6px;color:var(--copy)">Recovery complete</div>
           <h2>The haunting is over 🛡</h2>
-          <p>Every block reconciled, production back to a known-good state and the spirits laid to rest. You survived <b id="win-rec">0</b> corruption events using <b id="win-copies">0</b> Safeguarded Copies.</p>
+          <p>Every block reconciled, production back to a known-good state and the spirits laid to rest. You survived <b id="win-rec">0</b> corruption events using <b id="win-copies">0</b> Safeguarded Copies across all three volumes.</p>
           <div class="lb-note"></div>
           <div class="lb-entry" hidden>
             <div class="lb-entry-l">New high score — enter your initials</div>
@@ -464,87 +467,149 @@
   // Strict 1-tile-wide corridors (odd-lattice maze): no open area is ever 2 wide.
   // Generated + verified: connected, symmetric, no 2x2 open cells, no dead ends
   // (except the pen-exit nook, as in the classic board).
-  const MAP = [
-    "XXXXXXXXXXXXXXXXXXXXX",
-    "Xo....X...X...X....oX",
-    "X.XXX.X.X.X.X.X.XXX.X",
-    "X...X...X.X.X...X...X",
-    "XXX.X.XXX.X.XXX.X.XXX",
-    "X.....X...X...X.....X",
-    "X.XXX.X.XXXXX.X.XXX.X",
-    "X.....X.......X.....X",
-    "XXX.X.XXXX.XXXX.X.XXX",
-    " .......XX=XX....... ",
-    "X.X.XXX._____.XXX.X.X",
-    "X.X.....XXXXX.....X.X",
-    "X.XXXXX.XXXXX.XXXXX.X",
-    "X.....X...P...X.....X",
-    "XXX.X.XXX.X.XXX.X.XXX",
-    "X.....X.......X.....X",
-    "X.XXXXX.XXXXX.XXXXX.X",
-    "X.X...X...X...X...X.X",
-    "X.X.X.XXX.X.XXX.X.X.X",
-    "Xo..X.....X.....X..oX",
-    "XXXXXXXXXXXXXXXXXXXXX"
+  const LEVELS=[
+    { name:'The Cellar', pace:0.80, release:[0,3,6,9], fright:7,
+      warn:['locks on and chases hard','aims ahead to cut you off','unpredictable - takes random turns','lurks, then strikes when you are close'],
+      map:[
+      "XXXXXXXXXXXXXXXXXXXXX",
+      "Xo....X...X...X....oX",
+      "X.XXX.X.X.X.X.X.XXX.X",
+      "X...X...X.X.X...X...X",
+      "XXX.X.XXX.X.XXX.X.XXX",
+      "X.....X...X...X.....X",
+      "X.XXX.X.XXXXX.X.XXX.X",
+      "X.....X.......X.....X",
+      "XXX.X.XXXX.XXXX.X.XXX",
+      " .......XX=XX....... ",
+      "X.X.XXX._____.XXX.X.X",
+      "X.X.....XXXXX.....X.X",
+      "X.XXXXX.XXXXX.XXXXX.X",
+      "X.....X...P...X.....X",
+      "XXX.X.XXX.X.XXX.X.XXX",
+      "X.....X.......X.....X",
+      "X.XXXXX.XXXXX.XXXXX.X",
+      "X.X...X...X...X...X.X",
+      "X.X.X.XXX.X.XXX.X.X.X",
+      "Xo..X.....X.....X..oX",
+      "XXXXXXXXXXXXXXXXXXXXX"
+    ] },
+    { name:'The Crypt', pace:0.86, release:[0,2,4,6], fright:6,
+      warn:['faster, and locks on harder','faster, and out of the pen sooner','faster, still unpredictable','faster - quarantine lasts 6 s here'],
+      map:[
+      "XXXXXXXXXXXXXXXXXXXXX",
+      "Xo..X.....X.....X..oX",
+      "X.X.X.XXX.X.XXX.X.X.X",
+      "X.......X.X.X.......X",
+      "XXX.XXX.X.X.X.XXX.XXX",
+      "X.........X.........X",
+      "X.XXXXXXX.X.XXXXXXX.X",
+      "X...................X",
+      "XXX.X.XXXX.XXXX.X.XXX",
+      " .X.....XX=XX.....X. ",
+      "X.X.XXX._____.XXX.X.X",
+      "X.X.....XXXXX.....X.X",
+      "X.X.XXX.XXXXX.XXX.X.X",
+      "X.X.......P.......X.X",
+      "X.X.XXXXX.X.XXXXX.X.X",
+      "X.X.X...........X.X.X",
+      "X.X.X.XXXXXXXXX.X.X.X",
+      "X.........X.........X",
+      "X.X.XXX.X.X.X.XXX.X.X",
+      "Xo........X........oX",
+      "XXXXXXXXXXXXXXXXXXXXX"
+    ] },
+    { name:'The Bell Tower', pace:0.92, release:[0,1.5,3,4.5], fright:5,
+      warn:['faster still - no mercy','faster still, out almost at once','faster still, still random','faster still - quarantine only 5 s'],
+      map:[
+      "XXXXXXXXXXXXXXXXXXXXX",
+      "Xo........X........oX",
+      "X.XXXXX.X.X.X.XXXXX.X",
+      "X.X.......X.......X.X",
+      "X.X.X.X.XXXXX.X.X.X.X",
+      "X...X.X...X...X.X...X",
+      "XXX.X.X.X.X.X.X.X.XXX",
+      "X...X...X...X...X...X",
+      "X.X.XXXXXX.XXXXXX.X.X",
+      " .......XX=XX....... ",
+      "XXXXXXX._____.XXXXXXX",
+      "X.......XXXXX.......X",
+      "X.X.XXX.XXXXX.XXX.X.X",
+      "X.X.......P.......X.X",
+      "X.XXX.XXX.X.XXX.XXX.X",
+      "X.X...............X.X",
+      "X.X.X.XXXXXXXXX.X.X.X",
+      "X.X.......X.......X.X",
+      "X.X.X.X.X.X.X.X.X.X.X",
+      "Xo........X........oX",
+      "XXXXXXXXXXXXXXXXXXXXX"
+    ] }
   ];
-  const ROWS = MAP.length;
-  const COLS = MAP[0].length;
+  const Q=new URLSearchParams(location.search);
+  const startLevel=Math.min(LEVELS.length-1, Math.max(0, (parseInt(Q.get('level'))||1)-1));   // ?level=2 starts a run there
+  const DEBUG_DOTS=parseInt(Q.get('dots'))||0;                                                 // ?dots=1 leaves one block (for testing)
+  let level=0; const LV=()=>LEVELS[level];
+  const ROWS = LEVELS[0].map.length;
+  const COLS = LEVELS[0].map[0].length;
   const TILE = 24, HALF = TILE/2;
-  // sanity: every row equal width
-  for(const r of MAP){ if(r.length!==COLS) console.warn("row width mismatch", r.length); }
 
-  // cell type grids
-  const wall=[], dot=[], snap=[], pen=[], door=[];
-  let playerStart=null, doorTile=null, penTiles=[];
-  for(let r=0;r<ROWS;r++){
-    wall[r]=[];dot[r]=[];snap[r]=[];pen[r]=[];door[r]=[];
-    for(let c=0;c<COLS;c++){
-      const ch=MAP[r][c];
-      wall[r][c]= ch==='X';
-      pen[r][c] = ch==='_';
-      door[r][c]= ch==='=';
-      dot[r][c] = ch==='.';
-      snap[r][c]= ch==='o';
-      if(ch==='P') playerStart={c,r};
-      if(ch==='=') doorTile={c,r};
-      if(ch==='_') penTiles.push({c,r});
-    }
-  }
-  // flood fill player-reachable open cells; seal off unreachable pockets
-  (function seal(){
-    const open=(r,c)=> r>=0&&r<ROWS&&c>=0 && c<COLS && !wall[r][c] && !pen[r][c] && !door[r][c];
-    const seen=Array.from({length:ROWS},()=>Array(COLS).fill(false));
-    const st=[[playerStart.r,playerStart.c]]; seen[playerStart.r][playerStart.c]=true;
-    while(st.length){
-      const [r,c]=st.pop();
-      for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
-        let nr=r+dr, nc=((c+dc)+COLS)%COLS;            // tunnel wrap on cols
-        if(open(nr,nc)&&!seen[nr][nc]){seen[nr][nc]=true;st.push([nr,nc]);}
+  // board state for the current volume (rebuilt by loadLevel)
+  let wall, dot, snap, pen, door, playerStart, doorTile, penTiles, EXIT, cageInterior, cageSet, ringWalls;
+  function buildBoard(MAP){
+    for(const r of MAP){ if(r.length!==COLS) console.warn("row width mismatch", r.length); }
+    const wall=[], dot=[], snap=[], pen=[], door=[];
+    let playerStart=null, doorTile=null, penTiles=[];
+    for(let r=0;r<ROWS;r++){
+      wall[r]=[];dot[r]=[];snap[r]=[];pen[r]=[];door[r]=[];
+      for(let c=0;c<COLS;c++){
+        const ch=MAP[r][c];
+        wall[r][c]= ch==='X';
+        pen[r][c] = ch==='_';
+        door[r][c]= ch==='=';
+        dot[r][c] = ch==='.';
+        snap[r][c]= ch==='o';
+        if(ch==='P') playerStart={c,r};
+        if(ch==='=') doorTile={c,r};
+        if(ch==='_') penTiles.push({c,r});
       }
     }
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      if(!wall[r][c]&&!pen[r][c]&&!door[r][c]&&!seen[r][c]){
-        wall[r][c]=true; dot[r][c]=false; snap[r][c]=false; // brick over pockets
+    // flood fill player-reachable open cells; seal off unreachable pockets
+    (function seal(){
+      const open=(r,c)=> r>=0&&r<ROWS&&c>=0 && c<COLS && !wall[r][c] && !pen[r][c] && !door[r][c];
+      const seen=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+      const st=[[playerStart.r,playerStart.c]]; seen[playerStart.r][playerStart.c]=true;
+      while(st.length){
+        const [r,c]=st.pop();
+        for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          let nr=r+dr, nc=((c+dc)+COLS)%COLS;            // tunnel wrap on cols
+          if(open(nr,nc)&&!seen[nr][nc]){seen[nr][nc]=true;st.push([nr,nc]);}
+        }
       }
-    }
-  })();
-
-  // exit tile just above the door
-  const EXIT = {c:doorTile.c, r:doorTile.r-1};
-
-  // --- central containment cage: interior + door + the ring of walls around them ---
-  // used purely for rendering it as a clearly enclosed, hollow box (collision is unchanged)
-  const cageInterior = penTiles.slice();
-  const cageSet = new Set();
-  const ringWalls = new Set();
-  penTiles.forEach(t=>cageSet.add(t.r+','+t.c));
-  cageSet.add(doorTile.r+','+doorTile.c);
-  [...penTiles, doorTile].forEach(t=>{
-    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
-      const r=t.r+dr, c=t.c+dc;
-      if(r>=0&&r<ROWS&&c>=0&&c<COLS && wall[r][c]){ ringWalls.add(r+','+c); cageSet.add(r+','+c); }
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        if(!wall[r][c]&&!pen[r][c]&&!door[r][c]&&!seen[r][c]){
+          wall[r][c]=true; dot[r][c]=false; snap[r][c]=false; // brick over pockets
+        }
+      }
+    })();
+    const EXIT = {c:doorTile.c, r:doorTile.r-1};             // exit tile just above the door
+    // central containment cage: interior + door + the ring of walls around them (render only)
+    const cageInterior = penTiles.slice();
+    const cageSet = new Set();
+    const ringWalls = new Set();
+    penTiles.forEach(t=>cageSet.add(t.r+','+t.c));
+    cageSet.add(doorTile.r+','+doorTile.c);
+    [...penTiles, doorTile].forEach(t=>{
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+        const r=t.r+dr, c=t.c+dc;
+        if(r>=0&&r<ROWS&&c>=0&&c<COLS && wall[r][c]){ ringWalls.add(r+','+c); cageSet.add(r+','+c); }
+      });
     });
-  });
+    return {wall,dot,snap,pen,door,playerStart,doorTile,penTiles,EXIT,cageInterior,cageSet,ringWalls};
+  }
+  function loadLevel(n){
+    level=n;
+    ({wall,dot,snap,pen,door,playerStart,doorTile,penTiles,EXIT,cageInterior,cageSet,ringWalls}=buildBoard(LV().map));
+  }
+  loadLevel(startLevel);
 
   /* ---------- canvas ---------- */
   const cv=document.getElementById('game'), ctx=cv.getContext('2d');
@@ -596,7 +661,7 @@
   const PU_GLOW={ bee:'#f0c45a', eye:'#e8e8e8', m:'#6377d8' };
   let player, ghosts, score, dotsLeft, dotsTotal, clock, grace,
       phaseTimer, phase, mouth, state, repo, stats, lastCopyT, blocksSinceCopy, copySeq,
-      fright, eatChain, boost;
+      fright, eatChain, boost, volStart;
   let muted=false, paused=false;
 
   function freshVolume(){
@@ -613,6 +678,8 @@
         if(d[r][c])dotsTotal++;
       }
     }
+    if(DEBUG_DOTS && level===startLevel){ dotsTotal=0; for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const keep = d[r][c] && r===playerStart.r && c>playerStart.c && c<=playerStart.c+DEBUG_DOTS; d[r][c]=keep; if(keep)dotsTotal++; } }
     return {dots:d, snaps:s, pups:pu, score:0, dotsLeft:dotsTotal,
             pcol:playerStart.c, prow:playerStart.r, pdir:{x:0,y:0}};
   }
@@ -640,11 +707,12 @@
   let liveDots, liveSnaps, livePups;
 
   function newGame(){
+    loadLevel(startLevel);
     player = {x:0,y:0,dir:{x:0,y:0},next:{x:0,y:0},speed:2,acc:0};
-    ghosts = GHOSTS.map((g,i)=>({...g, x:0,y:0, dir:{x:0,y:-1}, speed:2, pace:GHOST_PACE, acc:0,
-      eaten:false, penned:true, released:false, relTimer:g.release, target:{c:0,r:0}, idx:i}));
+    ghosts = GHOSTS.map((g,i)=>({...g, x:0,y:0, dir:{x:0,y:-1}, speed:2, pace:LV().pace, acc:0,
+      eaten:false, penned:true, released:false, relTimer:LV().release[i], target:{c:0,r:0}, idx:i}));
     repo=[]; stats={taken:0, rec:0, lost:0, purged:0}; copySeq=0;
-    clock=0; grace=0; phaseTimer=0; phase='scatter'; mouth=0;
+    clock=0; grace=0; phaseTimer=0; phase='scatter'; mouth=0; volStart={t:0,taken:0,rec:0,lost:0};
     lastCopyT=0; blocksSinceCopy=0; fright=0; eatChain=0; boost=0;
     applyVolume(freshVolume());
     resetActors(true);
@@ -661,7 +729,7 @@
       const t=penTiles[i % penTiles.length];
       g.x=tile2px(t.c); g.y=tile2px(t.r); g.dir={x:0,y:-1};
       g.penned=true; g.released=false; g.eaten=false; g.acc=0;
-      g.relTimer = full ? GHOSTS[i].release : (0.4*i+0.3); // quick re-release after recovery
+      g.relTimer = full ? LV().release[i] : (0.4*i+0.3); // quick re-release after recovery
     });
     grace = full ? 1.6 : 2.6;
   }
@@ -962,7 +1030,7 @@
     ghosts.forEach(updateGhost.bind(null,dt));
     if(grace<=0) checkCatch();
 
-    if(dotsLeft<=0){ win(); }
+    if(dotsLeft<=0){ if(level<LEVELS.length-1) volumeCleared(); else win(); }
     syncUI();
   }
 
@@ -1017,7 +1085,7 @@
     if(type==='bee'){
       boost=BOOST_SEC; score+=30; sBoost();
     } else { // 'eye' or 'm' -> threat-response: open the quarantine window
-      fright=FRIGHT_SEC; eatChain=0; score+=50;
+      fright=LV().fright; eatChain=0; score+=50;
       ghosts.forEach(g=>{ if(!g.penned && !g.eaten) g.dir={x:-g.dir.x,y:-g.dir.y}; });
       sPurge();
     }
@@ -1194,6 +1262,31 @@
       : 'Without a Safeguarded Copy, a corruption event means the volume is gone. That is the whole argument for capturing immutable copies early and often.';
     show('ov-over'); setLED(true);
     endRun(false);
+  }
+
+  function volumeCleared(){
+    state='cleared'; stopMusic(); sRec(); setLED(false);
+    const done=LV(), next=LEVELS[level+1];
+    const vs={ t:fmt(clock-volStart.t), taken:stats.taken-volStart.taken, rec:stats.rec-volStart.rec, lost:stats.lost-volStart.lost };
+    splash($('transition'), $('transition-cv'), {
+      kicker:'VOLUME '+(level+1)+' OF '+LEVELS.length+' CLEARED', title:done.name,
+      sub:vs.t+' \u00b7 '+vs.taken+' copies \u00b7 '+vs.rec+' recoveries \u00b7 '+vs.lost+' blocks lost',
+      next:'NEXT \u00b7 VOLUME '+(level+2)+' \u00b7 '+next.name.toUpperCase(),
+      rows:GHOSTS.map((g,i)=>({name:g.name.toUpperCase(), color:g.color, note:next.warn[i]})),
+      subMono:true, hint:'PRESS ANY KEY TO DESCEND', button:$('btn-descend'),
+      onDone:()=>startVolume(level+1)
+    });
+  }
+  function startVolume(n){
+    loadLevel(n);
+    applyVolume(freshVolume());
+    repo=[]; lastCopyT=clock; blocksSinceCopy=0; fright=0; boost=0; eatChain=0;
+    volStart={t:clock, taken:stats.taken, rec:stats.rec, lost:stats.lost};
+    ghosts.forEach(g=>{ g.pace=LV().pace; });
+    resetActors(true);
+    const rn=$('repo-note'); if(rn){ rn.textContent=LV().name+' brought online \u2014 copies of the previous volume cannot restore this one, so the crypt starts empty.'; rn.hidden=false; rn.style.opacity=1; }
+    state='playing'; syncUI(); syncRepo();
+    if(musicOn) startMusic();
   }
 
   function win(){
@@ -1442,6 +1535,7 @@
   function syncUI(){
     $('h-score').textContent=score;
     $('h-dots').textContent=dotsLeft;
+    $('h-level').textContent='VOL '+(level+1)+'/'+LEVELS.length;
     $('s-taken').textContent=stats.taken;
     $('s-rec').textContent=stats.rec;
     $('s-lost').textContent=stats.lost;
@@ -1719,23 +1813,17 @@
      ATTRACT INTRO — full-screen chase -> roll-call -> fade to intro.
      Original sequence & characters. Self-contained: own canvas + rAF.
   ============================================================ */
-  (function attract(){
-    const host=document.getElementById('attract');
-    const cvs=document.getElementById('attract-cv');
+  // Full-screen splash: the four threats chase in from the left, split into a roster with labels,
+  // and the I/O head drifts off. Used for the title screen and for every volume transition.
+  function splash(host,cvs,cfg){
     if(!host||!cvs) return;
     const g2=cvs.getContext('2d');
     const reduce=window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const ROSTER=[
-      {name:'RANSOM', color:COL.alert,  note:'locks on and chases hard'},
-      {name:'WIPER',  color:COL.amber,  note:'aims ahead to cut you off'},
-      {name:'TROJAN', color:COL.violet, note:'unpredictable - takes random turns'},
-      {name:'ROOTKIT',color:COL.cyan,   note:'lurks, then strikes when you are close'},
-    ];
+    const ROSTER=cfg.rows;
     const LINE=[0,1,2,3];                 // Ransom leads the chase line, player trails
     const SPACING=54, PLAYER_GAP=1.6;
-    const T_CHASE=2.0, T_SPLIT=1.0, T_LABEL=0.5, HOLD=2.0;
-    const T_DONE=T_CHASE+T_SPLIT+T_LABEL+HOLD;
+    const T_CHASE=2.0, T_SPLIT=1.0, T_LABEL=0.5;
+    const skipTo = reduce ? T_CHASE+T_SPLIT+T_LABEL : 0;   // reduced motion: land on the finished frame
 
     let W,H,dpr,t0=null,raf=null,finished=false;
     function resize(){
@@ -1745,6 +1833,8 @@
       g2.setTransform(dpr,0,0,dpr,0,0);
     }
     window.addEventListener('resize',resize); resize();
+    host.hidden=false; host.style.display=''; host.classList.remove('done');
+    if(cfg.button){ cfg.button.hidden=true; cfg.button.onclick=end; }
 
     const easeOut=x=>1-Math.pow(1-x,3), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t;
     function geo(){
@@ -1766,17 +1856,18 @@
     }
     function frame(ts){
       if(t0===null)t0=ts;
-      const t=(ts-t0)/1000, G=geo();
+      const t=(ts-t0)/1000+skipTo, G=geo();
       g2.clearRect(0,0,W,H);
-      // title
+      // title block
       g2.textAlign='center'; g2.textBaseline='alphabetic';
       g2.globalAlpha=clamp(t/0.6,0,1);
       g2.fillStyle=COL.player; g2.font='600 13px "IBM Plex Mono",monospace';
-      g2.fillText('CYBER RESILIENCE ARCADE \u00b7 HALLOWEEN', W/2, H*0.16);
+      g2.fillText(cfg.kicker, W/2, H*0.16);
       g2.fillStyle='#f1e2bf'; g2.font='400 '+Math.min(52,W*0.085)+'px "IM Fell English SC",Georgia,serif';
-      g2.fillText('Safeguarded Copy', W/2, H*0.16+50);
-      g2.fillStyle=COL.muted; g2.font='italic 400 22px "IM Fell English",Georgia,serif';
-      g2.fillText('haunted edition', W/2, H*0.16+78);
+      g2.fillText(cfg.title, W/2, H*0.16+50);
+      g2.fillStyle=COL.muted; g2.font=cfg.subMono ? '500 14px "IBM Plex Mono",monospace' : 'italic 400 22px "IM Fell English",Georgia,serif';
+      g2.fillText(cfg.sub, W/2, H*0.16+78);                  // stats use Plex: IM Fell's old-style figures misread
+      if(cfg.next){ g2.fillStyle=COL.copy; g2.font='600 12px "IBM Plex Mono",monospace'; g2.fillText(cfg.next, W/2, H*0.16+112); }
       g2.globalAlpha=1;
       // chase + split
       const leadX=-70+(G.stageX+70)*easeOut(clamp(t/T_CHASE,0,1));
@@ -1796,17 +1887,17 @@
           g2.globalAlpha=1;
         }
       }
-      // I/O head trails the line during the chase, then drifts off at a steady,
-      // gentle pace during/after the split (linear, not eased, so it doesn't launch)
+      // I/O head trails the line during the chase, then drifts off at a steady pace
       const pChaseX=leadX-4*SPACING-PLAYER_GAP*SPACING;
-      const exitT=Math.max(0,t-T_CHASE);                 // seconds since split began
-      const pExitX=pChaseX + exitT*260;                  // ~260px/s, constant
+      const exitT=Math.max(0,t-T_CHASE);
+      const pExitX=pChaseX + exitT*260;
       if(pExitX < W+40) puck(pExitX, G.laneY, t*10, 1-clamp(exitT/1.4,0,0.9));
-      // continue hint
+      // continue hint (+ button on transitions)
       if(t>T_CHASE+T_SPLIT+T_LABEL){
+        if(cfg.button && cfg.button.hidden) cfg.button.hidden=false;
         g2.textAlign='center'; g2.globalAlpha=0.4+0.35*Math.sin(t*3);
         g2.fillStyle=COL.muted; g2.font='600 12px "IBM Plex Mono",monospace';
-        g2.fillText('PRESS ANY KEY TO CONTINUE', W/2, H*0.9);
+        g2.fillText(cfg.hint, W/2, H*0.9);
         g2.globalAlpha=1;
       }
       raf=requestAnimationFrame(frame);          // holds until a key/click (no auto-advance)
@@ -1815,13 +1906,26 @@
       if(finished) return; finished=true;
       cancelAnimationFrame(raf); host.classList.add('done');
       window.removeEventListener('resize',resize);
+      window.removeEventListener('keydown',sk);
+      if(cfg.button) cfg.button.hidden=true;
+      if(cfg.onDone) cfg.onDone();
       setTimeout(()=>{ host.style.display='none'; }, 900);
     }
+    function sk(){ end(); }
     host.addEventListener('click',end);
-    window.addEventListener('keydown',function sk(){ window.removeEventListener('keydown',sk); end(); });
-    if(reduce){ end(); return; }
+    window.addEventListener('keydown',sk);
     raf=requestAnimationFrame(frame);
-  })();
+  }
+  splash($('attract'), $('attract-cv'), {
+    kicker:'CYBER RESILIENCE ARCADE · HALLOWEEN', title:'Safeguarded Copy', sub:'haunted edition',
+    rows:[
+      {name:'RANSOM', color:COL.alert,  note:'locks on and chases hard'},
+      {name:'WIPER',  color:COL.amber,  note:'aims ahead to cut you off'},
+      {name:'TROJAN', color:COL.violet, note:'unpredictable - takes random turns'},
+      {name:'ROOTKIT',color:COL.cyan,   note:'lurks, then strikes when you are close'},
+    ],
+    hint:'PRESS ANY KEY TO CONTINUE'
+  });
 
   /* pin the console column to the map's exact height so the Power-ups panel
      bottom lines up with the bottom of the game board (desktop 2-col only) */

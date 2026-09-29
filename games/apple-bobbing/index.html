@@ -9,17 +9,19 @@
     <meta name="added" content="2026-09-03">
     <meta name="game-accent" content="#ff8a2a">
     <meta name="game-controls" content="Tap an apple, then pick the right answer before the timer runs out. Drag on the water to stir">
-    <script type="module" crossorigin src="./assets/index-lma3C8Ic.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BIFKy3Fu.css">
+    <script type="module" crossorigin src="./assets/index-CIMooygX.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DvW9oRQ7.css">
   </head>
   <body>
     <div id="app"></div>
     <div id="hud">
+      <div id="run-clock">--</div>
       <div id="counter">
         <div id="pumpkin"><span id="caught-count">0</span></div>
         <div>
           <div id="counter-label">apples bobbed</div>
           <div id="counter-sub"><span id="facts-left">12</span> facts still lurking</div>
+          <div id="score-line"><span id="score">0</span> pts</div>
         </div>
       </div>
       <div id="attract" class="hidden">
@@ -53,6 +55,12 @@
       <h2 id="fact-title"></h2>
       <p id="fact-body"></p>
       <button id="fact-dismiss" type="button">Keep bobbing</button>
+    </section>
+    <section id="game-over-card" class="sheet hidden" aria-live="polite">
+      <p id="game-over-reason"></p>
+      <div id="game-over-score-line">Score: <span id="game-over-score">0</span></div>
+      <ol id="game-over-scores"></ol>
+      <p id="game-over-prompt">Tap anywhere to play again</p>
     </section>
     <div id="error" class="hidden"></div>
   </body>
